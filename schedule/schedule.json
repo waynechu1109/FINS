@@ -1,0 +1,26 @@
+{
+    "total_epochs": 500,
+    "train": {
+        "sigma": 0.035,
+        "loss_weights": {
+            "loss_sdf": 4.2,
+            "loss_zero": 1.5,
+            "loss_eikonal": {
+                "loss_eikonal_init": 0.01,
+                "loss_eikonal_final": 0.02,
+                "loss_eikonal_ramp": 100,
+                "loss_global_eikonal": 0.8
+            },
+            "loss_normal": 0.05,
+            "loss_sparse": 0.036,
+            "loss_color_geo": 0.0,
+            "loss_neg_sdf": 0.63,
+            "loss_singular_hessian": {
+                "loss_singular_hessian_init": 0.0,
+                "loss_singular_hessian_final": 0.0,
+                "loss_singular_hessian_ramp": 100
+            },
+            "loss_rgb_gt": 2.8
+        }
+    }
+}
