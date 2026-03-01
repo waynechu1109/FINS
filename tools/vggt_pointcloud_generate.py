@@ -140,7 +140,7 @@ with torch.no_grad():
     # print(f'point_conf: {point_conf}, shape: {point_conf.shape}')
     # print(f'conf_score: {conf_score}, shape: {conf_score.shape}')
 
-    # 準備最終點雲與顏色
+    # Prepare the final point cloud and colors
     all_pts3d = []
     all_colors = []
 
@@ -152,26 +152,26 @@ with torch.no_grad():
         H, W, _ = points.shape
         points = points.reshape(-1, 3)         # ➜ [H*W, 3]
 
-        # Depth confidence 對應影像 b
+        # Depth confidence corresponding to image b
         depth_conf_cpu = depth_conf[0, b].detach().cpu().numpy()  # [H, W]
         depth_conf_flat = depth_conf_cpu.reshape(-1)              # [H*W]
 
         if thres:
-            # 門檻
+            # Threshold
             threshold = np.percentile(depth_conf_flat, thres)
             conf_mask = depth_conf_flat >= threshold
 
-            # 有效點過濾
+            # Filter valid points
             valid_mask = np.isfinite(points).all(axis=1) & (np.abs(points).sum(axis=1) > 0)
             final_mask = valid_mask & conf_mask
         else:
-            final_mask = np.isfinite(points).all(axis=1)  # 只排除 NaN/Inf
+            final_mask = np.isfinite(points).all(axis=1)  # Only exclude NaN/Inf
 
-        # 過濾點雲
+        # Filter the point cloud
         filtered_points = points[final_mask]
         all_pts3d.append(filtered_points)
 
-        # 處理單張圖片的 RGB 張量
+        # Process the RGB tensor for a single image
         img_rgb = images[0, b]  # [3, H, W]
         if isinstance(img_rgb, torch.Tensor):
             img_rgb = img_rgb.detach().cpu().numpy()
@@ -187,14 +187,14 @@ with torch.no_grad():
         img_rgb = img_rgb[final_mask]
         all_colors.append(np.clip(img_rgb, 0, 1))
 
-        conf_values = depth_conf_flat  # ← 這行要加上，否則你在 all_confidence.append(conf_values[...]) 時會報錯
-        all_confidence.append(conf_values[final_mask])  # 因用 final_mask 做過濾
+        conf_values = depth_conf_flat  # This line is required, otherwise all_confidence.append(conf_values[...]) will fail
+        all_confidence.append(conf_values[final_mask])  # Filter using final_mask
         
 
-    # 合併所有圖片的點雲, 顏色, confidence
+    # Merge point clouds, colors, and confidence from all images
     all_pts3d = np.concatenate(all_pts3d, axis=0)
     all_colors = np.concatenate(all_colors, axis=0)
-    all_confidence = np.concatenate(all_confidence, axis=0)  # 假設你前面已記錄每張影像的 confidence 值    
+    all_confidence = np.concatenate(all_confidence, axis=0)  # Assumes the confidence values for each image were collected above
 
     # # Normalize to [-1, 1]
     # mins = all_pts3d.min(axis=0)
@@ -207,10 +207,10 @@ with torch.no_grad():
     mins = all_pts3d.min(axis=0)         # shape (3,)
     maxs = all_pts3d.max(axis=0)         # shape (3,)
     centre = (maxs + mins) / 2.0
-    scale = (maxs - mins).max()          # 取最大邊長
+    scale = (maxs - mins).max()          # Use the maximum side length
     all_pts3d = (all_pts3d - centre) / scale + 0.5
 
-    # 建立 Open3D 點雲
+    # Build the Open3D point cloud
     pcd = o3d.geometry.PointCloud()
 
     if max_points:
@@ -230,7 +230,7 @@ with torch.no_grad():
         pcd.colors = o3d.utility.Vector3dVector(all_colors.astype(float))
         pcd_down = pcd
 
-    # 法線估計與方向一致化
+    # Estimate normals and align their directions
     pcd_down.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=30))
     pcd_down.orient_normals_consistent_tangent_plane(k=30)
 
@@ -238,7 +238,7 @@ with torch.no_grad():
         # reverse the normals if in "concave" scene
         pcd_down.normals = o3d.utility.Vector3dVector(-np.asarray(pcd_down.normals))
 
-    # 離群點移除
+    # Remove outliers
     pcd_down, ind = pcd_down.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
 
     # ======= RANSAC plane removal =======
@@ -252,18 +252,18 @@ with torch.no_grad():
     #                                                 num_iterations=num_iterations)
     #     print(f"Detected plane equation: {plane_model[0]:.3f}x + {plane_model[1]:.3f}y + {plane_model[2]:.3f}z + {plane_model[3]:.3f} = 0")
 
-    #     # 移除最大平面（通常為桌面/背景）
+    #     # Remove the largest plane (usually the table/background)
     #     pcd_down = pcd_down.select_by_index(inliers, invert=True)
 
-    # 使用 KDTree 對應最終點雲與原始 confidence 值
+    # Use a KDTree to match the final point cloud back to the original confidence values
     tree = cKDTree(all_pts3d)
     final_points = np.asarray(pcd_down.points)
 
-    # 查詢最接近的原始點 index
+    # Query the index of the nearest original point
     _, indices = tree.query(final_points, k=1)
     output_conf = [float(all_confidence[i]) for i in indices]
 
-    # 匯出點雲
+    # Export the point cloud
     os.makedirs(f"data/vggt_preprocessed/{file_name}", exist_ok=True)
     o3d.io.write_point_cloud(f"data/vggt_preprocessed/{file_name}/output_pointcloud_normal.ply", pcd_down)
     json_path = f"data/vggt_preprocessed/{file_name}/output_confidence.json"
@@ -292,7 +292,7 @@ print(f"Total processing time: {total_end - total_start:.2f} seconds.")
 
 #### debugging image output ####
 
-# === 讀取資料 ===
+# === Load data ===
 # info_path = f"../data/vggt_preprocessed/{file_name}/output_pointcloud_normal_info.json"
 # pcd_path = f"../data/vggt_preprocessed/{file_name}/output_pointcloud_normal.ply"
 
@@ -304,39 +304,38 @@ print(f"Total processing time: {total_end - total_start:.2f} seconds.")
 # extrinsic = np.array(info['extrinsic']).reshape(3, 4)
 # intrinsic = np.array(info['intrinsic']).reshape(3, 3)
 
-# # 讀取點雲
+# # Load the point cloud
 # pcd = o3d.io.read_point_cloud(pcd_path)
-# points = np.asarray(pcd.points) * scale + centre  # 還原原始點
-# colors = np.asarray(pcd.colors)  # RGB 顏色，shape = (N, 3)
+# points = np.asarray(pcd.points) * scale + centre  # Restore original points
+# colors = np.asarray(pcd.colors)  # RGB colors, shape = (N, 3)
 # # points = np.asarray(pcd.points)
 # N = points.shape[0]
 # points_hom = np.hstack([points, np.ones((N, 1))]).T  # (4, N)
 
-# # 投影到像素空間
+# # Project into pixel space
 # cam_points = extrinsic @ points_hom  # (4, N)
 # cam_points = cam_points[:3, :]       # (3, N)
 # pixels = intrinsic @ cam_points      # (3, N)
-# pixels = pixels / pixels[2:3, :]     # 除以深度 Z
+# pixels = pixels / pixels[2:3, :]     # Divide by depth Z
 # pixel_coords = pixels[:2, :].T       # (N, 2)
 
-# # 設定影像大小（你可以依你的資料調整）
+# # Set the image size (adjust to match your data)
 # image_width = 1024
 # image_height = 1024
 
-# # 過濾合法像素位置
+# # Filter valid pixel positions
 # x, y = pixel_coords[:, 0], pixel_coords[:, 1]
 # valid_mask = (x >= 0) & (x < image_width) & (y >= 0) & (y < image_height)
 # valid_pixel_coords = pixel_coords[np.where(valid_mask)[0]]
 # valid_colors = colors[np.where(valid_mask)[0]]
 
-# # === 繪圖 ===
+# # === Plot ===
 # plt.figure(figsize=(10, 10))
 # plt.scatter(valid_pixel_coords[:, 0], valid_pixel_coords[:, 1],
-#             c=valid_colors, s=1.5, alpha=0.8)  # 可以改點的顏色與大小
-# plt.gca().invert_yaxis()  # 類似 OpenCV 的座標系統：原點在左上
+#             c=valid_colors, s=1.5, alpha=0.8)  # You can adjust point color and size
+# plt.gca().invert_yaxis()  # Similar to OpenCV coordinates: origin at the top-left
 # plt.axis('off')
 # plt.xlim([0, image_width])
 # plt.ylim([image_height, 0])
 # plt.tight_layout()
 # plt.savefig(f"../data/vggt_preprocessed/{file_name}/debug_cloud_only.png", dpi=300)
-

@@ -26,7 +26,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
         try:
-            torch.set_float32_matmul_precision('high')  # Ampere+ 可能受益
+            torch.set_float32_matmul_precision('high')  # Ampere+ may benefit
         except Exception:
             pass
 
@@ -43,52 +43,52 @@ if __name__ == "__main__":
     min_bound = [0.0, 0.0, 0.0]
     max_bound = [1.0, 1.0, 1.0]
 
-    # linspace on CPU for spacing（供 marching_cubes 使用）
+    # linspace on CPU for spacing (used by marching_cubes)
     x_vals_np = np.linspace(min_bound[0], max_bound[0], res, dtype=np.float32)
     y_vals_np = np.linspace(min_bound[1], max_bound[1], res, dtype=np.float32)
     z_vals_np = np.linspace(min_bound[2], max_bound[2], res, dtype=np.float32)
 
-    # 同步在 GPU 建立 torch 版本（避免 CPU->GPU 巨量拷貝）
+    # Create the torch version on GPU as well (avoid large CPU->GPU copies)
     x_vals = torch.linspace(min_bound[0], max_bound[0], res, device=device, dtype=torch.float32)
     y_vals = torch.linspace(min_bound[1], max_bound[1], res, device=device, dtype=torch.float32)
     z_vals = torch.linspace(min_bound[2], max_bound[2], res, device=device, dtype=torch.float32)
 
-    # 預先配置 SDF grid（CPU, float32）
+    # Preallocate the SDF grid (CPU, float32)
     sdf_grid = np.zeros((res, res, res), dtype=np.float32)
 
     total_voxels = res * res * res
     slab = max(1, min(args.slab_depth, res))
     bs = max(1, args.batch_size)
 
-    # AMP 設定
+    # AMP configuration
     if args.precision == 'fp16' and device.type == 'cuda':
         amp_dtype = torch.float16
     elif args.precision == 'bf16' and device.type == 'cuda':
         amp_dtype = torch.bfloat16
     elif args.precision == 'auto' and device.type == 'cuda':
-        # 讓 PyTorch 自行選擇；這裡選擇 bfloat16 較穩定（若卡支援），否則關閉
+        # Let PyTorch choose; prefer bfloat16 for stability when supported, otherwise use float16
         amp_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     else:
-        amp_dtype = None  # 關閉 autocast
+        amp_dtype = None  # Disable autocast
 
     if amp_dtype is not None and device.type == 'cuda':
         autocast_ctx = torch.cuda.amp.autocast(dtype=amp_dtype)
     else:
         autocast_ctx = torch.cuda.amp.autocast(enabled=False)
 
-    # ---- 主推論：以 Z-slab 為單位在 GPU 端生成座標並分批前向 ----
+    # ---- Main inference: generate coordinates per Z-slab on GPU and run batched forwards ----
     with torch.inference_mode(), autocast_ctx:
         for z0 in tqdm(range(0, res, slab), desc="Evaluating SDF grid (slabs)"):
             z1 = min(z0 + slab, res)
-            # GPU 上建立 slab 座標
+            # Build slab coordinates on GPU
             slab_pts = build_coords_slab_on_device(x_vals, y_vals, z_vals, z0, z1, device)  # (Dz*res*res, 3)
 
-            # 分批前向
+            # Batched forward passes
             slab_sdfs = torch.empty((slab_pts.shape[0],), dtype=torch.float32, device=device)
             for i in range(0, slab_pts.shape[0], bs):
                 j = min(i + bs, slab_pts.shape[0])
                 sdf_pred, _ = model(slab_pts[i:j])
-                # 以 float32 暫存，避免 AMP 取樣誤差累積
+                # Store as float32 to avoid accumulated AMP sampling error
                 slab_sdfs[i:j] = sdf_pred.reshape(-1).float()
 
             # write back to CPU numpy (non_blocking)

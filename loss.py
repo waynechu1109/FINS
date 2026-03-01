@@ -4,21 +4,21 @@ import torch.nn.functional as F
 # compute eik loss globally
 def compute_global_eik_loss(model, x, ratio=1.5, expand=0.3):
     """
-    x: [N,6] (點雲)
-    ratio: 取樣數量 = ratio * 點雲數量
-    expand: bounding box 擴張比例
+    x: [N,6] (point cloud)
+    ratio: number of samples = ratio * point-cloud size
+    expand: bounding box expansion ratio
     """
     device = x.device
     N = x.shape[0]
     N_eik = int(N * ratio)
-    # 抽樣區間
+    # Sampling range
     pts = x[:, :3]
     bbox_min, bbox_max = pts.min(0)[0], pts.max(0)[0]
     min_box = bbox_min - expand * (bbox_max - bbox_min)
     max_box = bbox_max + expand * (bbox_max - bbox_min)
-    # 均勻隨機抽樣
+    # Uniform random sampling
     eik_xyz = torch.rand(N_eik, 3, device=device) * (max_box - min_box) + min_box
-    # 拼成 (x, y, z, x, y, z)
+    # Pack as (x, y, z, x, y, z)
     eik_x = torch.cat([eik_xyz], dim=1)
     eik_x.requires_grad_(True)
     sdf_pred, _ = model(eik_x)
@@ -37,21 +37,21 @@ def compute_negative_sdf_loss(
     expand=0.5, 
     batch_size=2**12, 
     far_weight=8.0, 
-    subsample_points=50000   # 可調：限制距離計算的對象點數
+    subsample_points=50000   # Tunable: limit the number of points used in distance computation
 ):
     device = x.device
     N_neg = int(x.shape[0] * ratio)
 
-    # --- 建立 bounding box ---
+    # --- Build the bounding box ---
     points = x[:, :3]
     bbox_min, bbox_max = points.min(0)[0], points.max(0)[0]
     min_neg = bbox_min - expand * (bbox_max - bbox_min)
     max_neg = bbox_max + expand * (bbox_max - bbox_min)
 
-    # --- 隨機取樣 negative points ---
+    # --- Randomly sample negative points ---
     neg_xyz = torch.rand(N_neg, 3, device=device) * (max_neg - min_neg) + min_neg
 
-    # --- 距離計算 (子採樣避免爆記憶體) ---
+    # --- Distance computation (subsample to avoid blowing up memory) ---
     with torch.no_grad():
         if points.shape[0] > subsample_points:
             idx = torch.randperm(points.shape[0], device=device)[:subsample_points]
@@ -63,7 +63,7 @@ def compute_negative_sdf_loss(
         d = torch.cdist(neg_xyz, ref_points)
         neg_target, _ = d.min(dim=1)
 
-    # --- loss 計算 ---
+    # --- Loss computation ---
     far_threshold = 0.8 * (bbox_max - bbox_min).norm()
     losses = []
 
@@ -97,16 +97,16 @@ def color_geometry_loss(x, f_x, alpha=10.0, sample_size=1024):
     color_diff2 = (rgb.unsqueeze(1) - rgb.unsqueeze(0)).pow(2).sum(-1)  # [sample_size, sample_size]
     # Pairwise sdf distance
     sdf_diff2 = (f_sub.unsqueeze(1) - f_sub.unsqueeze(0)).pow(2)  # [sample_size, sample_size]
-    # Weight: color越接近越重，越遠越輕
+    # Weight: closer colors get larger weights, farther colors get smaller weights
     w = torch.exp(-alpha * color_diff2)
-    # 損失
+    # Loss
     loss = (w * sdf_diff2).mean()
     return loss
 
 # refer to SparseNeuS
 def compute_sparse_loss(model, x, num_samples, box_margin=0.1, tau=30.0):
     with torch.no_grad():
-        # 只取前三維 (xyz) 建立 bounding box
+        # Use only the first three dimensions (xyz) to build the bounding box
         min_bound = x[:, :3].min(dim=0)[0]
         max_bound = x[:, :3].max(dim=0)[0]
         margin = (max_bound - min_bound) * box_margin
@@ -137,9 +137,9 @@ def compute_normal_loss(model, x, normals, batch_size=8192):
             create_graph=True,
             retain_graph=True,
             only_inputs=True
-        )[0][:, :3]  # normal loss只對xyz，這裡選前3維
+        )[0][:, :3]  # Normal loss only uses xyz, so keep the first 3 dimensions here
 
-        # 只計算靠近表面的normal loss
+        # Only compute normal loss near the surface
         mask = (f_pred.abs() < 0.05)
         if mask.any():
             grads = grads[mask]
@@ -175,9 +175,9 @@ def compute_loss(
     ):
 
     batch_size = 2**18 if is_a100 else 30000
-    # forward cache（避免重複 forward）
-    sdf_noisy, _ = model(x_noisy_full)    # noisy input (SDF loss 用)
-    sdf_x, rgb_x = model(x)               # 原始點 (zero / rgb / color geo 用)
+    # Forward cache (avoid repeated forward passes)
+    sdf_noisy, _ = model(x_noisy_full)    # Noisy input (used for SDF loss)
+    sdf_x, rgb_x = model(x)               # Original points (used for zero / rgb / color-geometry)
 
     # 1) SDF Loss
     if weight_sdf > 0.0:
@@ -190,10 +190,10 @@ def compute_loss(
     else:
         loss_sdf = torch.tensor(0.0, device=x.device)
 
-    # 2) Singular Hessian（需額外建圖，保留原做法）
+    # 2) Singular Hessian (requires an extra graph build, keep the original approach)
     if weight_singular_hessian > 0.0 and epoch % 10 == 0:
         with torch.no_grad():
-            sdf_vals = sdf_noisy  # 已經有前向結果
+            sdf_vals = sdf_noisy  # Forward result is already available
             surface_mask = sdf_vals.abs() < 0.1
             x_near_surface = x_noisy_full[surface_mask].detach()
 
@@ -211,10 +211,10 @@ def compute_loss(
                 sdf_pred_b, _ = model(x_input)
 
                 gradients = torch.autograd.grad(
-                    outputs=sdf_pred_b.sum(),        # ← 等價於 ones_like
+                    outputs=sdf_pred_b.sum(),        # Equivalent to ones_like
                     inputs=x_batch_xyz,
                     create_graph=True,
-                    retain_graph=False,              # ← 不共享圖，無須保留
+                    retain_graph=False,              # No shared graph, so no need to retain it
                     only_inputs=True
                 )[0]  # [B, 3]
 
@@ -242,10 +242,10 @@ def compute_loss(
     else:
         loss_singular_hessian = torch.tensor(0.0, device=x.device)
 
-    # 3) Zero loss（直接用 cache）
+    # 3) Zero loss (use the cache directly)
     loss_zero = sdf_x.abs().mean() if weight_zero > 0.0 else torch.tensor(0.0, device=x.device)
 
-    # 4) Eikonal（two-pass：各自建圖，不共享）
+    # 4) Eikonal (two-pass: build separate graphs, no sharing)
     if eik_init > 0.0 and weight_glob_eik > 0.0:
         with torch.no_grad():
             idx = torch.where(sdf_noisy.abs().squeeze(-1) < 0.2)[0]
@@ -267,7 +267,7 @@ def compute_loss(
         loss_eikonal_surface = torch.tensor(0.0, device=x.device)
         loss_eikonal_global  = torch.tensor(0.0, device=x.device)
 
-    # 5) Normal loss（需 requires_grad）
+    # 5) Normal loss (requires requires_grad)
     if weight_normal > 0.0:
         if not isinstance(normals, torch.Tensor):
             normals_t = torch.tensor(normals, dtype=torch.float32, device=x.device)
@@ -279,16 +279,16 @@ def compute_loss(
     else:
         loss_normal = torch.tensor(0.0, device=x.device)
 
-    # 6) Sparse loss（需各自 forward）
+    # 6) Sparse loss (requires separate forwards)
     loss_sparse = compute_sparse_loss(model, x, num_samples=batch_size) if weight_sparse > 0.0 else torch.tensor(0.0, device=x.device)
 
-    # 7) Color-Geometry（重用 sdf_x）
+    # 7) Color-Geometry (reuse sdf_x)
     loss_color_geo = color_geometry_loss(x, sdf_x, alpha=10.0, sample_size=batch_size) if weight_color_geo > 0.0 else torch.tensor(0.0, device=x.device)
 
-    # 8) Negative SDF（內部各自 forward）
+    # 8) Negative SDF (runs its own forward internally)
     loss_neg_sdf = compute_negative_sdf_loss(model, x, ratio=0.05, expand=0.5, batch_size=batch_size) if weight_neg_sdf > 0.0 else torch.tensor(0.0, device=x.device)
 
-    # 9) RGB GT（重用 rgb_x）
+    # 9) RGB GT (reuse rgb_x)
     loss_rgb_gt = F.mse_loss(rgb_x, gt_colors) if weight_rgb_gt > 0.0 else torch.tensor(0.0, device=x.device)
 
     return (loss_sdf, loss_zero, loss_eikonal_surface, 

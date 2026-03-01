@@ -17,7 +17,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.cuda.amp import autocast, GradScaler
 from lion_pytorch import Lion
 
-# ========== 這幾行是為了 K-FAC Minimal ==========
+# ========== These lines are for K-FAC Minimal ==========
 from typing import Optional, Iterable, Dict, List, Tuple
 import torch.nn as nn
 from dataclasses import dataclass
@@ -211,7 +211,7 @@ parser.add_argument('--file_name', type=str, required=True, help="Pointcloud fil
 parser.add_argument('--schedule_path', type=str, required=True, help="Training schedule file name.")
 parser.add_argument('--is_a100', type=str2bool, required=True, help="Training on A100 or not.")
 
-# === K-FAC 相關超參數 ===
+# === K-FAC-related hyperparameters ===
 parser.add_argument('--kfac_head_lr_mul', type=float, default=5.0, help='K-FAC 啟動後 heads 的 LR 倍數（相對於 --lr）')
 parser.add_argument('--kfac_damping', type=float, default=8e-3, help='K-FAC damping')
 parser.add_argument('--kfac_inv_update', type=int, default=20, help='K-FAC inverse 更新頻率')
@@ -258,27 +258,27 @@ gt_colors = torch.tensor(gt_colors_np, dtype=torch.float32, device=device)
 mins   = points.amin(dim=0, keepdim=True)     # (1,3)
 maxs   = points.amax(dim=0, keepdim=True)     # (1,3)
 centre = (maxs + mins) * 0.5                  # (1,3)
-scale  = (maxs - mins).max() + 1e-8           # scalar (最大邊長，避免除以0)
+scale  = (maxs - mins).max() + 1e-8           # scalar (maximum side length, avoids division by zero)
 
-points = (points - centre) / scale + 0.5      # → roughly [0,1]^3（等比縮放 + 平移）
+points = (points - centre) / scale + 0.5      # roughly [0,1]^3 (uniform scaling + translation)
 
-# (可選) 若你想完全落在 [0,1] 而不是“約略”，可再 clamp：
+# (Optional) If you want values strictly inside [0,1] rather than "roughly", clamp again:
 # points = points.clamp_(0.0, 1.0)
 
-x = points.to(device)   # [N,3] 直接當輸入
+x = points.to(device)   # [N,3] used directly as input
 model = SDFNet().to(device)
 
 # ========= Optimizers / Schedulers =========
-# 先用 Lion 訓練全部參數；建立「唯一」的 Cosine 調度器
+# Start by training all parameters with Lion; create the single cosine scheduler
 optimizer_all = Lion(model.parameters(), lr=lr, weight_decay=1e-2)
 scheduler_cosine = CosineAnnealingLR(optimizer_all, T_max=total_epochs, eta_min=lr / 1000.0)
 
-# 之後切換用的（初始為 None）
+# Used after the later optimizer switch (initialized as None)
 use_kfac = False
 optimizer_encoder = None
 optimizer_heads = None  # K-FAC
-# 不再使用多個 scheduler，僅此一個：
-# scheduler_cosine 會在切換時動態改綁 optimizer
+# Do not use multiple schedulers; this is the only one:
+# scheduler_cosine will be rebound dynamically when switching optimizers
 
 scaler = GradScaler()
 
@@ -290,20 +290,20 @@ with open(log_path, "w") as f:
     f.write("epoch,loss_total,loss_sdf,loss_zero,loss_eikonal,loss_normal,loss_sparse,loss_color_geo,loss_neg_sdf,loss_singular_hessian,loss_rgb_gt,learning_rate\n")
 
 for epoch in pbar:
-    # 若到達切換點，建立混合優化器（保持同一個 cosine 週期）
+    # Once the switch point is reached, build the hybrid optimizer setup (while keeping the same cosine cycle)
     if (not use_kfac) and (epoch >= kfac_start_epoch):
         print(f"[Switch] Enable K-FAC at epoch {epoch}")
         use_kfac = True
 
-        # 目前 cosine 的 LR（保持週期連續）
+        # Current cosine LR (keeps the schedule continuous)
         cur_lr = scheduler_cosine.get_last_lr()[0]
 
-        # Encoder → Lion（沿用當前 LR）
+        # Encoder -> Lion (reuse the current LR)
         encoder_params = [p for n, p in model.named_parameters()
                           if ('geo_head' not in n and 'color_head' not in n)]
         optimizer_encoder = Lion(encoder_params, lr=cur_lr, weight_decay=1e-2)
 
-        # Heads → K-FAC（LR = 倍數 × 當前 LR）
+        # Heads -> K-FAC (LR = multiplier x current LR)
         head_lr = kfac_head_lr_mul * cur_lr
         optimizer_heads = KFACLinearOnly(
             model=model,
@@ -315,11 +315,11 @@ for epoch in pbar:
             inv_update_freq=kfac_inv_update
         )
 
-        # **關鍵**：不要新建 scheduler，直接把同一個 cosine 綁到新的 encoder optimizer
+        # **Key point**: do not create a new scheduler; bind the same cosine scheduler to the new encoder optimizer
         scheduler_cosine.optimizer = optimizer_encoder
 
-        # 不再用 warmup 的 optimizer
-        del optimizer_all  # scheduler_cosine 已經改綁，不再需要它
+        # The warmup optimizer is no longer used
+        del optimizer_all  # scheduler_cosine has been rebound, so it is no longer needed
 
     sigma = train_cfg["sigma"]
 
@@ -338,19 +338,19 @@ for epoch in pbar:
     singular_hessian_ramp             = train_cfg["loss_weights"]["loss_singular_hessian"]["loss_singular_hessian_ramp"]
     weight_rgb_gt                     = train_cfg["loss_weights"]["loss_rgb_gt"]
 
-    # 產生 xyz 的 noise
+    # Generate xyz noise
     epsilon = torch.randn_like(x[:, :3]) * sigma
     x_noisy_full = torch.cat([x[:, :3] + epsilon], dim=1)  # [N, 3]
     epsilon = torch.cat([epsilon], dim=1)                  # [N, 3]
     x_noisy_full = x_noisy_full.to(device)
     epsilon = epsilon.to(device)
 
-    # 清梯度
+    # Clear gradients
     if use_kfac:
         optimizer_encoder.zero_grad(set_to_none=True)
         optimizer_heads.zero_grad(set_to_none=True)
     else:
-        # 還在 warmup：用整體的 Lion
+        # Still in warmup: use the full-model Lion optimizer
         scheduler_cosine.optimizer.zero_grad(set_to_none=True)
 
     with autocast():
@@ -396,30 +396,30 @@ for epoch in pbar:
 
     scaler.scale(loss_total).backward()
 
-    # === 更新 ===
+    # === Update ===
     if use_kfac:
-        # 讓 K-FAC/Lion 看未縮放梯度
+        # Let K-FAC/Lion see unscaled gradients
         scaler.unscale_(optimizer_encoder)
         scaler.unscale_(optimizer_heads)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-        # K-FAC 先更新 heads
+        # Update heads with K-FAC first
         optimizer_heads.step()
 
-        # Lion 更新 encoder
+        # Update the encoder with Lion
         scaler.step(optimizer_encoder)
         scaler.update()
 
         current_lr = scheduler_cosine.get_last_lr()[0]
     else:
-        # warmup：整體 Lion（scheduler 綁在 optimizer_all 上）
+        # Warmup: full-model Lion (the scheduler is bound to optimizer_all)
         scaler.unscale_(scheduler_cosine.optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         scaler.step(scheduler_cosine.optimizer)
         scaler.update()
         current_lr = scheduler_cosine.get_last_lr()[0]
 
-    # **唯一** 的 cosine 調度器步進（整個訓練期間只呼叫它）
+    # The **only** cosine scheduler step (called once throughout the entire training run)
     scheduler_cosine.step()
 
     pbar.set_postfix(loss=loss_total.item(), lr=current_lr)
@@ -448,7 +448,7 @@ torch.save({
             "model_state_dict": model.state_dict()
         }, f"{ckpt_path}_final.pt")
 
-# 若有啟動 K-FAC，記得移除 hooks
+# If K-FAC was enabled, remember to remove the hooks
 if use_kfac and optimizer_heads is not None:
     optimizer_heads.close()
 

@@ -1,10 +1,11 @@
-# FINS: Fast Image-to-Neural Surface [ICRA 2026 Accepted]
+<div align="center">
+<h1>FINS: Fast Image-to-Neural Surface</h1>
 
 <h3 align="center">
-  <a href="https://arxiv.org/abs/2509.20681">Paper</a>
-  ·
-  <a href="#citation">Citation</a>
+  <a href="https://arxiv.org/abs/2509.20681"><img src="https://img.shields.io/badge/arXiv-2509.20681-b31b1b" alt="arXiv"></a>
 </h3>
+
+[Wei-Teng Chu](), [Tianyi Zhang](), [Matthew Johnson-Roberson](), [Weiming Zhi]()
 
 <p align="center">
   <img src="./media/dtu_114_32.png" height="220" />
@@ -12,6 +13,16 @@
   <img src="./media/franka_side.gif" height="220" />
 </p>
 
+</div>
+
+```bibtex
+@article{chu2025efficient,
+  title   = {Efficient Construction of Implicit Surface Models From a Single Image for Motion Generation},
+  author  = {Wei-Teng Chu and Tianyi Zhang and Matthew Johnson-Roberson and Weiming Zhi},
+  journal = {arXiv preprint arXiv:2509.20681},
+  year    = {2025}
+}
+```
 
 ## Overview
 **FINS: Fast Image-to-Neural Surface** reconstructs high-fidelity signed distance fields (SDFs) from as little as a single RGB image in just a few seconds.
@@ -56,11 +67,20 @@ pip install -r requirements.txt
 ```
 
 ### Dataset Preparation
-- DTU Training dataset. Please download the preprocessed DTU dataset provided by [MVSNet](https://drive.google.com/file/d/1eDjh-_bxKKnEuz5h-HXS7EDJn59clx6V/view).
-
+- We used DTU Training dataset for experiments. Please download the preprocessed DTU dataset provided by [MVSNet](https://drive.google.com/file/d/1eDjh-_bxKKnEuz5h-HXS7EDJn59clx6V/view).
+- The data should be prepared in the structure as:
+```bash
+data/
+├── dtu_105_09/
+│   └── dtu_105_09.png
+├── dtu_108_32/
+│   └── dtu_108_32.png
+└── ...
+```
+- You can also try custom data.
 
 ### Image Preprocess
-First clone VGGT
+Clone VGGT first.
 ```bash
 # clone VGGT for preprocess data
 mkdir deps && cd deps
@@ -68,7 +88,7 @@ git clone https://github.com/facebookresearch/vggt.git
 cd ..
 ```
 
-The image should be placed in ```data/<image_name>/```. VGGT can generate point cloud with only a single image.
+The image should be placed in ```data/<image_name>/<image_name>.png```. VGGT can generate point cloud with only a single image.
 
 ```bash
 cd tools

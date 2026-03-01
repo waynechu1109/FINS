@@ -46,12 +46,12 @@ def render_pointcloud(points: torch.Tensor,
     return image, depth
 
 def marching_cubes_and_export(model, sdf_grid, level, spacing, min_bound, output_mesh, device, vtx_batch=1<<20, amp_dtype=None):
-    # Marching Cubes（CPU）
+    # Marching Cubes (CPU)
     verts, faces, normals, _ = measure.marching_cubes(sdf_grid, level=level, spacing=spacing)
-    # 轉換座標系
+    # Convert the coordinate system
     verts = verts + np.array(min_bound)[::-1]
     verts = verts[:, [2, 1, 0]]
-    # 頂點上色（GPU，分批）
+    # Color vertices on GPU in batches
     verts_colors = np.zeros((verts.shape[0], 3), dtype=np.float32)
 
     if amp_dtype is None:
@@ -63,7 +63,7 @@ def marching_cubes_and_export(model, sdf_grid, level, spacing, min_bound, output
         for i in tqdm(range(0, verts.shape[0], vtx_batch), desc="Colorizing vertices"):
             j = min(i + vtx_batch, verts.shape[0])
             v_chunk = torch.as_tensor(verts[i:j], dtype=torch.float32, device=device)
-            # 你的 SDFNet 接口: f(xyz)->(sdf, rgb)
+            # Your SDFNet interface: f(xyz) -> (sdf, rgb)
             _, rgb = model(v_chunk)
             verts_colors[i:j] = rgb.clamp(0.0, 1.0).float().cpu().numpy()
 
@@ -95,7 +95,7 @@ def save_slice_with_axes(
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    # --- Step 1: 找 0-level set 範圍 ---
+    # --- Step 1: Find the 0-level set range ---
     zero_mask = np.isclose(img, 0.0, atol=(vmax - vmin) * 0.01)
     if not zero_mask.any():
         y_min, y_max = 0, img.shape[0]
@@ -105,7 +105,7 @@ def save_slice_with_axes(
         y_min, y_max = ys.min(), ys.max()
         x_min, x_max = xs.min(), xs.max()
 
-        # --- Step 2: 往外推 10% ---
+        # --- Step 2: Expand outward by 10% ---
         h, w = img.shape
         pad_y = int(0.1 * (y_max - y_min))
         pad_x = int(0.1 * (x_max - x_min))
@@ -115,7 +115,7 @@ def save_slice_with_axes(
         x_min = max(x_min - pad_x, 0)
         x_max = min(x_max + pad_x, w)
 
-        # --- Step 3: 強制正方形 ---
+        # --- Step 3: Force a square crop ---
         box_h = y_max - y_min
         box_w = x_max - x_min
         box_size = max(box_h, box_w)
@@ -129,10 +129,10 @@ def save_slice_with_axes(
         x_min = max(cx - half, 0)
         x_max = min(cx + half, w)
 
-    # --- Step 4: 裁切 ---
+    # --- Step 4: Crop ---
     img_crop = img[y_min:y_max, x_min:x_max]
 
-    # --- Step 5: 繪圖 ---
+    # --- Step 5: Plot ---
     fig, ax = plt.subplots(figsize=(6, 6))  # square figure
     im = ax.imshow(
         img_crop, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
@@ -158,7 +158,7 @@ def save_slice_with_axes(
     ax.set_xticks([])
     ax.set_yticks([])
 
-    # --- Step 6: colorbar 與圖片同高 ---
+    # --- Step 6: Match the colorbar height to the image ---
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.1)
     cbar = fig.colorbar(im, cax=cax)
@@ -184,11 +184,11 @@ def save_gradient_norm_slice(
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    # --- Step 1: 計算 gradient norm ---
+    # --- Step 1: Compute the gradient norm ---
     gy, gx = np.gradient(img)
     grad_norm = np.sqrt(gx**2 + gy**2)
 
-    # --- Step 2: 找 0-level set 範圍（還是基於 SDF 值） ---
+    # --- Step 2: Find the 0-level set range (still based on SDF values) ---
     zero_mask = np.isclose(img, 0.0, atol=(vmax - vmin) * 0.01)
     if not zero_mask.any():
         y_min, y_max = 0, img.shape[0]
@@ -207,7 +207,7 @@ def save_gradient_norm_slice(
         x_min = max(x_min - pad_x, 0)
         x_max = min(x_max + pad_x, w)
 
-        # 強制正方形
+        # Force a square crop
         box_h = y_max - y_min
         box_w = x_max - x_min
         box_size = max(box_h, box_w)
@@ -222,15 +222,15 @@ def save_gradient_norm_slice(
         x_max = min(cx + half, w)
     contour_levels = np.linspace(vmin, vmax, 21)
 
-    # --- Step 3: 裁切 ---
+    # --- Step 3: Crop ---
     grad_crop = grad_norm[y_min:y_max, x_min:x_max]
     img_crop = img[y_min:y_max, x_min:x_max]
 
-    # --- Step 4: 設定 gmin/gmax ---
+    # --- Step 4: Set gmin/gmax ---
     gmin = float(np.min(grad_crop))
     gmax = float(np.max(grad_crop))
 
-    # --- Step 5: 繪圖 ---
+    # --- Step 5: Plot ---
     fig, ax = plt.subplots(figsize=(6, 6))
     im = ax.imshow(
         grad_crop, cmap=cmap, vmin=gmin, vmax=gmax, origin='lower',
@@ -262,14 +262,15 @@ def save_gradient_norm_slice(
 
 def build_coords_slab_on_device(x_vals, y_vals, z_vals, z_start, z_end, device):
     """
-    在 GPU 端建立 [z_start:z_end) 這個 slab 的 (res_y*res_x*(z_end-z_start), 3) 座標
+    Build the slab coordinates for [z_start:z_end) on the GPU with shape
+    (res_y * res_x * (z_end - z_start), 3).
     """
-    # 注意：x_vals/y_vals/z_vals 已是 torch.Tensor 且在 device 上
+    # Note: x_vals, y_vals, and z_vals are already torch.Tensor objects on device
     z_chunk = z_vals[z_start:z_end]                       # (Dz,)
     yy, xx = torch.meshgrid(y_vals, x_vals, indexing='ij')# (Ry,Rx)
-    # 展平 YX -> (Ry*Rx, )
+    # Flatten YX -> (Ry*Rx, )
     xy = torch.stack([xx.reshape(-1), yy.reshape(-1)], dim=-1) # (Ry*Rx,2)
-    # 重複到每個 Z 切片
+    # Repeat for each Z slice
     xy = xy.unsqueeze(0).expand(z_chunk.shape[0], -1, -1)     # (Dz, Ry*Rx, 2)
     zz = z_chunk[:, None, None].expand(-1, xy.shape[1], 1)    # (Dz, Ry*Rx, 1)
     pts = torch.cat([xy, zz], dim=-1).reshape(-1, 3)          # (Dz*Ry*Rx, 3) = (slab_size, 3)

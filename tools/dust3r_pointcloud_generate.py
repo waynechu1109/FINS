@@ -20,10 +20,10 @@ import os
 
 def contrast_enhance(colors):
     # colors: [N, 3], assumed in [0,255]
-    colors = colors.astype(np.float32) / 255.0  # 先轉到 [0,1]
+    colors = colors.astype(np.float32) / 255.0  # Convert to [0,1] first
     
-    # 拉伸每個 channel 的對比
-    p_low, p_high = 1, 99  # 去除極端值
+    # Stretch the contrast of each channel
+    p_low, p_high = 1, 99  # Remove extreme values
     out = []
     for c in range(3):
         vmin = np.percentile(colors[:, c], p_low)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     mins = all_pts3d.min(axis=0)
     maxs = all_pts3d.max(axis=0)
     centre = (maxs + mins) / 2.0
-    scale = np.max(maxs - mins) / 2.0  # 單一尺度
+    scale = np.max(maxs - mins) / 2.0  # Use a single scale
     all_pts3d = (all_pts3d - centre) / scale
 
     pcd = o3d.geometry.PointCloud()
@@ -226,10 +226,10 @@ if __name__ == '__main__':
         # reverse the normals if in "concave" scene
         pcd_down.normals = o3d.utility.Vector3dVector(-np.asarray(pcd_down.normals))
 
-    # 離群點移除
+    # Remove outliers
     pcd_down, ind = pcd_down.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
 
-    # 儲存帶顏色與法向量的點雲
+    # Save the point cloud with color and normals
     o3d.io.write_point_cloud(f"../data/dust3r_preprocessed/output_pointcloud_{file_name}_normal.ply", pcd_down)
 
     # store the centre point and scale information for inferencing 
@@ -254,5 +254,4 @@ if __name__ == '__main__':
 
     # # save_colored_ply("../data/output_pointcloud_.ply", all_pts3d, all_colors)
     # o3d.io.write_point_cloud("../data/output_pointcloud_.ply", all_pts3d)
-
 
