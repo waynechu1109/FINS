@@ -16,11 +16,14 @@
 </div>
 
 ```bibtex
-@article{chu2025efficient,
-  title   = {Efficient Construction of Implicit Surface Models From a Single Image for Motion Generation},
-  author  = {Wei-Teng Chu and Tianyi Zhang and Matthew Johnson-Roberson and Weiming Zhi},
-  journal = {arXiv preprint arXiv:2509.20681},
-  year    = {2025}
+@misc{chu2025fins,
+  title         = {Efficient Construction of Implicit Surface Models From a Single Image for Motion Generation}, 
+  author        = {Wei-Teng Chu and Tianyi Zhang and Matthew Johnson-Roberson and Weiming Zhi},
+  year          = {2025},
+  eprint        = {2509.20681},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+  url           = {https://arxiv.org/abs/2509.20681}, 
 }
 ```
 
@@ -135,11 +138,14 @@ python3 chamfer_dist_eval.py --result_mesh <path_to_output_mesh> --gt_mesh <path
 If you find this repository useful, please cite our arXiv paper:
 
 ```bibtex
-@article{chu2025efficient,
-  title   = {Efficient Construction of Implicit Surface Models From a Single Image for Motion Generation},
-  author  = {Wei-Teng Chu and Tianyi Zhang and Matthew Johnson-Roberson and Weiming Zhi},
-  journal = {arXiv preprint arXiv:2509.20681},
-  year    = {2025}
+@misc{chu2025fins,
+  title         = {Efficient Construction of Implicit Surface Models From a Single Image for Motion Generation}, 
+  author        = {Wei-Teng Chu and Tianyi Zhang and Matthew Johnson-Roberson and Weiming Zhi},
+  year          = {2025},
+  eprint        = {2509.20681},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+  url           = {https://arxiv.org/abs/2509.20681}, 
 }
 ```
 
