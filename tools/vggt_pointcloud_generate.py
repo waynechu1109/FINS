@@ -1,6 +1,5 @@
 import sys
 import argparse
-# sys.path.append('./../vggt')
 sys.path.append('deps/vggt')
 
 from vggt.utils.pose_enc import pose_encoding_to_extri_intri

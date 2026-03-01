@@ -1,41 +1,73 @@
-# Project name: ... [conferecne]
-(README abstract)
+# Fast Image-to-Neural Surface: FINS [ICRA 2026 Accepted]
 
-![](./docs/images/teaser.jpg)
+<h3 align="center">
+  <a href="https://arxiv.org/abs/2509.20681">Paper</a>
+  ·
+  <a href="#citation">Citation</a>
+</h3>
 
-## [Project Page]() | [Paper]() 
+<p align="center">
+  <img src="./media/dtu_114_32.png" height="220" />
+  <img src="./media/sdf_buddha.gif" height="220" />
+  <img src="./media/franka_side.gif" height="220" />
+</p>
+
+
+## Abstract
+**Fast Image-to-Neural Surface (FINS)** reconstructs high-fidelity signed distance fields (SDFs) from as little as a single RGB image in just a few seconds.
+
+Unlike traditional neural surface methods that require dense multi-view supervision and long optimization times, FINS leverages pretrained 3D foundation models to generate geometric priors, combined with multi-resolution hash encoding and lightweight SDF heads for rapid convergence.
+
+The resulting implicit representation enables real-time surface reconstruction and supports downstream robotics tasks such as motion planning, obstacle avoidance, and surface following.
+
+FINS bridges single-image perception and fast neural implicit modeling, making SDF construction practical for real-world robotic systems.
 
 ## Setup
 ```bash
-git clone https://...
-cd ...
+git clone https://github.com/waynechu1109/FINS.git
+cd FINS
 ```
 
 ### Conda
 ```bash
-cd ~/droplab_research
+cd ~/FINS
 pip install -r requirements.txt
 ```
 
 ### Docker
 ```bash
 # pull docker image from docker hub
-sudo docker pull waynechu1109/droplab_research:a100_latest
+sudo docker pull waynechu1109/droplab_research:latest
 
 # run docker  
-sudo docker run --gpus all -it \
-  -v ~/Wayne/home/waynechu/droplab_research:/root/droplab_research \
-  waynechu1109/droplab_research:a100_latest \
-  /bin/bash
+docker run -it --gpus all \
+  -p 8000:8000 \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v /home/waynechu/FINS:/FINS \
+  -v /etc/passwd:/etc/passwd:ro \
+  -v /etc/group:/etc/group:ro \
+  --name FINS \
+  waynechu1109/droplab_research:latest /bin/bash
+
+cd FINS
+pip install -r requirements.txt
 ```
 
-### Dataset (should modify in the future)
-- DTU Training dataset. Please download the preprocessed DTU dataset provided by [MVSNet](https://drive.google.com/file/d/1eDjh-_bxKKnEuz5h-HXS7EDJn59clx6V/view). As stated in the paper, we preprocess the images to obtain the masks about the "black empty background" to remove image noises. The preprocessed masks can be downloaded [here](https://connecthkuhk-my.sharepoint.com/:u:/g/personal/xxlong_connect_hku_hk/EW_v7RA73HNEquScVtNJ34gB4hYlRfEatW4TOg086F0_Lg?e=3SKiif). Training without the masks will not be a problem, just ignore the "masks" in the dataloader.
-- DTU testing dataset. Since our target neural reconstruction with sparse views, we select two set of three images from the 15 testing scenes (same as [IDR](https://github.com/lioryariv/idr)) for evaluation. Download our prepared [testing dataset](https://connecthkuhk-my.sharepoint.com/:u:/g/personal/xxlong_connect_hku_hk/EU22HEv48nRLnnnliRvJNA0BILozsMLbhsnMQh1WZLY5kg?e=Lh7kWM).
+### Dataset Preparation
+- DTU Training dataset. Please download the preprocessed DTU dataset provided by [MVSNet](https://drive.google.com/file/d/1eDjh-_bxKKnEuz5h-HXS7EDJn59clx6V/view).
 
 
 ### Image Preprocess
-The input image should be placed in ```/data```. 
+First clone VGGT
+```bash
+# clone VGGT for preprocess data
+mkdir deps && cd deps
+git clone https://github.com/facebookresearch/vggt.git
+cd ..
+```
+
+The image should be placed in ```/data```. 
 
 ```bash
 cd tools
@@ -51,40 +83,41 @@ For more options, see ```python3 vggt_pointcloud_generate.py -h```.
 
 After preprocess, you can find the preprocessed point cloud file in ```/data/vggt_preprocessed/<file_name>```. It is convenient to view preprocessed point clouds with F3D. You can simply install it with ```sudo apt install f3d```.
 
-### Training 
-The training script can be found in ```/scripts/experiment.sh```, which include the commands for both training and inferencing. If you want to run series trainging (for example, multiple scenes at a single run), see ```/scripts/run_exp_series.sh```.
+### Training and Inferring
+The script for the whole pipeline can be found in ```/scripts/experiment.sh```, which include the commands for both training and inferring. If you want to run series trainging (for example, multiple scenes at a single run), see ```/scripts/run_exp_series.sh```.
 
 ```bash
 # Start series training
 ./scripts/run_exp_series.sh
 ```
 
-### Results
+<!-- ### Results
 The mesh render script can also be found in ```/tools``` folder. You can render the result mesh with the commands below:
 ```bash
 cd tools
 python3 mesh_video_render.py --input <path_to_output_mesh>
 ```
-- To show color, set ```--colored```.
+- To show color, set ```--colored```. -->
 
 <!-- You can download the [DTU results](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/xxlong_connect_hku_hk/EpvCB9YC1FZEtrsrbEkd8AwBGdnymfTQLJIdXFIeIOcqsw?e=3hb9Zn) and [BMVS results](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/xxlong_connect_hku_hk/EpLOwBek671NmgzmmLresT0Bt9JKgIYBkHogeQsukzfttQ?e=rodRih) of the paper reports here. -->
 
-## Evaluation
+<!-- ## Evaluation
 The output iso-surface reconstruction result can be evaluated with ground truth mesh with the command below:
 ```bash
 cd tools
 python3 chamfer_dist_eval.py --result_mesh <path_to_output_mesh> --gt_mesh <path_to_gt_mesh>
-```
+``` -->
 
 ## Citation
 
-Cite as below if you find this repository is helpful to your project:
+If you find this repository useful, please cite our arXiv paper:
 
+```bibtex
+@article{chu2025efficient,
+  title   = {Efficient Construction of Implicit Surface Models From a Single Image for Motion Generation},
+  author  = {Wei-Teng Chu and Tianyi Zhang and Matthew Johnson-Roberson and Weiming Zhi},
+  journal = {arXiv preprint arXiv:2509.20681},
+  year    = {2025}
+}
 ```
-...
-```
 
-## Acknowledgement
-The pipeline is plotted with the helpful tool provided by [PlotNeuralNet](https://github.com/HarisIqbal88/PlotNeuralNet) [https://doi.org/10.5281/zenodo.2526396](https://doi.org/10.5281/zenodo.2526396)
-
-<!-- Some code snippets are borrowed from [IDR](https://github.com/lioryariv/idr), [NeuS](https://github.com/Totoro97/NeuS) and [IBRNet](https://github.com/googleinterns/IBRNet). Thanks for these great projects. -->
