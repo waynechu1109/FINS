@@ -1,4 +1,4 @@
-# Fast Image-to-Neural Surface: FINS [ICRA 2026 Accepted]
+# FINS: Fast Image-to-Neural Surface [ICRA 2026 Accepted]
 
 <h3 align="center">
   <a href="https://arxiv.org/abs/2509.20681">Paper</a>
@@ -13,8 +13,8 @@
 </p>
 
 
-## Abstract
-**Fast Image-to-Neural Surface (FINS)** reconstructs high-fidelity signed distance fields (SDFs) from as little as a single RGB image in just a few seconds.
+## Overview
+**FINS: Fast Image-to-Neural Surface** reconstructs high-fidelity signed distance fields (SDFs) from as little as a single RGB image in just a few seconds.
 
 Unlike traditional neural surface methods that require dense multi-view supervision and long optimization times, FINS leverages pretrained 3D foundation models to generate geometric priors, combined with multi-resolution hash encoding and lightweight SDF heads for rapid convergence.
 
@@ -22,7 +22,7 @@ The resulting implicit representation enables real-time surface reconstruction a
 
 FINS bridges single-image perception and fast neural implicit modeling, making SDF construction practical for real-world robotic systems.
 
-## Setup
+## Quick Start
 ```bash
 git clone https://github.com/waynechu1109/FINS.git
 cd FINS
@@ -30,7 +30,9 @@ cd FINS
 
 ### Conda
 ```bash
-cd ~/FINS
+conda create -n FINS python=3.10
+conda activate FINS
+
 pip install -r requirements.txt
 ```
 
@@ -50,7 +52,6 @@ docker run -it --gpus all \
   --name FINS \
   waynechu1109/droplab_research:latest /bin/bash
 
-cd FINS
 pip install -r requirements.txt
 ```
 
@@ -67,7 +68,7 @@ git clone https://github.com/facebookresearch/vggt.git
 cd ..
 ```
 
-The image should be placed in ```/data```. 
+The image should be placed in ```data/<image_name>/```. VGGT can generate point cloud with only a single image.
 
 ```bash
 cd tools
@@ -81,15 +82,16 @@ python3 vggt_pointcloud_generate.py --file dtu_118_60 --thres 65 --max_points 90
 
 For more options, see ```python3 vggt_pointcloud_generate.py -h```. 
 
-After preprocess, you can find the preprocessed point cloud file in ```/data/vggt_preprocessed/<file_name>```. It is convenient to view preprocessed point clouds with F3D. You can simply install it with ```sudo apt install f3d```.
+After preprocess, you can find the preprocessed point cloud file in ```data/vggt_preprocessed/<file_name>```. It is convenient to view preprocessed point clouds with F3D. You can simply install it with ```sudo apt install f3d```.
 
 ### Training and Inferring
-The script for the whole pipeline can be found in ```/scripts/experiment.sh```, which include the commands for both training and inferring. If you want to run series trainging (for example, multiple scenes at a single run), see ```/scripts/run_exp_series.sh```.
+The script for the whole pipeline can be found in ```scripts/experiment.sh```, which include the commands for both training and inferring. If you want to run series trainging (for example, multiple scenes at a single run), see ```scripts/run_exp_series.sh```.
 
 ```bash
 # Start series training
 ./scripts/run_exp_series.sh
 ```
+The results can be found in ```output/```.
 
 <!-- ### Results
 The mesh render script can also be found in ```/tools``` folder. You can render the result mesh with the commands below:
