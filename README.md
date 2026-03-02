@@ -3,6 +3,7 @@
 
 <h3 align="center">
   <a href="https://arxiv.org/abs/2509.20681"><img src="https://img.shields.io/badge/arXiv-2509.20681-b31b1b" alt="arXiv"></a>
+  <a href="https://waynechu1109.github.io/fins.github.io/"><img src="https://img.shields.io/badge/Project_Page-blue" alt="Project Page"></a>
 </h3>
 
 [Wei-Teng Chu](), [Tianyi Zhang](), [Matthew Johnson-Roberson](), [Weiming Zhi]()
