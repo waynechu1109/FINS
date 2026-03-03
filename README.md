@@ -134,6 +134,10 @@ cd tools
 python3 chamfer_dist_eval.py --result_mesh <path_to_output_mesh> --gt_mesh <path_to_gt_mesh>
 ``` -->
 
+## Acknowledgements
+
+This project would not have been possible without prior work such as [VGGT](https://github.com/facebookresearch/vggt) and [DUSt3R](https://github.com/naver/dust3r). We thank the authors of these works and the broader research community for making this project possible.
+
 ## Citation
 
 If you find this repository useful, please cite our arXiv paper:
@@ -149,4 +153,3 @@ If you find this repository useful, please cite our arXiv paper:
   url           = {https://arxiv.org/abs/2509.20681}, 
 }
 ```
-
