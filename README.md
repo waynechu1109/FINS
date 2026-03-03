@@ -6,7 +6,7 @@
   <a href="https://waynechu1109.github.io/fins.github.io/"><img src="https://img.shields.io/badge/Project_Page-blue" alt="Project Page"></a>
 </h3>
 
-[Wei-Teng Chu](), [Tianyi Zhang](), [Matthew Johnson-Roberson](), [Weiming Zhi]()
+[Wei-Teng Chu](https://www.linkedin.com/in/waynechu1109), [Tianyi Zhang](https://www.linkedin.com/in/tianyi-zhang-396b0a186/), [Matthew Johnson-Roberson](https://www.linkedin.com/in/mattkjr/), [Weiming Zhi](https://www.linkedin.com/in/williamzhi/)
 
 <p align="center">
   <img src="./media/dtu_114_32.png" height="220" />
