@@ -39,18 +39,23 @@ The resulting implicit representation enables real-time surface reconstruction a
 
 FINS bridges single-image perception and fast neural implicit modeling, making SDF construction practical for real-world robotic systems.
 
+## Prerequisites
+This repository is designed to run with Docker only.
+Please make sure the following are ready before installation:
+
+- Linux environment (validated on Ubuntu) with an NVIDIA GPU.
+- Docker Engine.
+- NVIDIA Driver installed on host.
+- NVIDIA Container Toolkit (`--gpus all` support).
+
+Optional:
+
+- `f3d` for quick point cloud visualization.
+
 ## Quick Start
 ```bash
 git clone https://github.com/waynechu1109/FINS.git
 cd FINS
-```
-
-### Conda
-```bash
-conda create -n FINS python=3.10
-conda activate FINS
-
-pip install -r requirements.txt
 ```
 
 ### Docker
@@ -63,13 +68,11 @@ docker run -it --gpus all \
   -p 8000:8000 \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v /home/waynechu/FINS:/FINS \
+  -v $HOME/FINS:/FINS \
   -v /etc/passwd:/etc/passwd:ro \
   -v /etc/group:/etc/group:ro \
   --name FINS \
   waynechu1109/droplab_research:latest /bin/bash
-
-pip install -r requirements.txt
 ```
 
 ### Dataset Preparation
@@ -111,7 +114,7 @@ For more options, see ```python3 vggt_pointcloud_generate.py -h```.
 After preprocess, you can find the preprocessed point cloud file in ```data/vggt_preprocessed/<file_name>```. It is convenient to view preprocessed point clouds with F3D. You can simply install it with ```sudo apt install f3d```.
 
 ### Training and Inferring
-The script for the whole pipeline can be found in ```scripts/experiment.sh```, which include the commands for both training and inferring. If you want to run series trainging (for example, multiple scenes at a single run), see ```scripts/run_exp_series.sh```.
+The script for the whole pipeline can be found in ```scripts/experiment.sh```, which include the commands for both training and inferring. If you want to run series training (for example, multiple scenes at a single run), see ```scripts/run_exp_series.sh```.
 
 ```bash
 # Start series training
