@@ -2,6 +2,7 @@
 <h1>FINS: Fast Image-to-Neural Surface</h1>
 
 <h3 align="center">
+  <a href="https://opensource.org/license/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="License: MIT"></a>
   <a href="https://arxiv.org/abs/2509.20681"><img src="https://img.shields.io/badge/arXiv-2509.20681-b31b1b" alt="arXiv"></a>
   <a href="https://waynechu1109.github.io/fins.github.io/"><img src="https://img.shields.io/badge/Project_Page-blue" alt="Project Page"></a>
 </h3>
@@ -29,6 +30,18 @@
   url           = {https://arxiv.org/abs/2509.20681}, 
 }
 ```
+
+## Table of Contents
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+  - [Docker](#docker)
+  - [Dataset Preparation](#dataset-preparation)
+  - [Image Preprocess](#image-preprocess)
+  - [Training and Inferring](#training-and-inferring)
+- [Acknowledgements](#acknowledgements)
+- [Citation](#citation)
+- [License](#license)
 
 ## Overview
 **FINS: Fast Image-to-Neural Surface** reconstructs high-fidelity signed distance fields (SDFs) from as little as a single RGB image in just a few seconds.
@@ -158,3 +171,7 @@ If you find this repository useful, please cite our arXiv paper:
   url           = {https://arxiv.org/abs/2509.20681}, 
 }
 ```
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
