@@ -8,7 +8,7 @@
 
 [Wei-Teng Chu](https://www.linkedin.com/in/waynechu1109)<sup>1</sup>, [Tianyi Zhang](https://www.linkedin.com/in/tianyi-zhang-396b0a186/)<sup>2</sup>, [Matthew Johnson-Roberson](https://www.linkedin.com/in/mattkjr/)<sup>3,4</sup>, [Weiming Zhi](https://www.linkedin.com/in/williamzhi/)<sup>3,4,5</sup>
 
-<sup>1</sup> Dept. of Electrical Engineering, Stanford University · <sup>2</sup> Aurora · <sup>3</sup> College of Connected Computing, Vanderbilt University · <sup>4</sup> Robotics Institute, Carnegie Mellon University · <sup>5</sup> School of Computer Science, The University of Sydney
+<sup>1</sup> Dept. of Electrical Engineering, Stanford University · <sup>2</sup> Aurora · <sup>3</sup> School of Computer Science, The University of Sydney · <sup>4</sup> Australian Centre for Robotics · <sup>5</sup> College of Connected Computing, Vanderbilt University
 
 <p align="center">
   <img src="./media/dtu_114_32.png" height="220" />
